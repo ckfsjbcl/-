@@ -1,0 +1,17 @@
+#发送私聊信息
+from function import send_private_msg
+a = send_private_msg("3270039695","hello")
+print(a)
+
+
+        if post_type == "message":
+            message_type = main_into["message_type"]
+            if message_type == "group":
+                group_id = main_into["group_id"]
+
+            else:
+                pass
+        else:
+            pass
+
+

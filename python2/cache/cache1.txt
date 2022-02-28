@@ -1,0 +1,435 @@
+from flask import Flask
+app = Flask(__name__)
+@app.route('/a')
+
+
+def hello():
+    return 'Hello Flask!'
+
+
+if __name__ == '__main__':
+    app.run()
+
+    //
+
+
+import socket
+import sys
+
+
+def socket_client():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(('127.0.0.1', 5701))
+    except socket.error as msg:
+        print(msg)
+        sys.exit(1)
+    print(s.recv(1024))  # 目的在于接受：Accept new connection from (...
+    while 1:
+        data = input('please input work: ').encode()
+        s.send(data)
+        print('aa', s.recv(1024))
+        if data == 'exit':
+            break
+    s.close()
+
+
+if __name__ == '__main__':
+    socket_client()
+
+    //
+
+
+from flask import Flask,request,jsonify
+app = Flask(__name__)#创建一个服务，赋值给APP
+@app.route('/get_sum',methods=['post'])#指定接口访问的路径，支持什么请求方式get，post
+def get_sum():
+    a= request.form.get('a')
+    b= request.form.get('b')
+    #request.args.get("key") 获取get请求参数
+    #request.values.get("key") 获取所有参数
+    c=int(a)+int(b)
+    return jsonify(c)
+if __name__ == '__main__':
+    app.run(host="0.0.0.0",port=8802)
+#这个host：windows就一个网卡，可以不写，而liux有多个网卡，写成0:0:0可以接受任意网卡信息,
+# 通过访问127.0.0.1:8802/pfk，可返回data信息
+#debug:调试的时候，可以指定debug=true；如果是提供接口给他人使用的时候，debug要去掉
+
+
+       //
+
+
+import requests
+url = "127.0.0.1:5701"
+data = {"key":"value"}
+res = requests.post(url=url,data=data)
+print(res.text)
+
+
+    //
+
+
+import socket
+
+import client,server
+
+#获取信息类型 群聊/私聊 group/private
+def get_message_type():
+	return all_message['message_type']
+
+#获取群号/私聊qq号
+def get_number():
+	if get_message_type() == 'group':
+		return all_message['group_id']
+	elif get_message_type() == 'private':
+		return all_message['user_id']
+	else:
+		print('出错啦！找不到群号/QQ号')
+		exit()
+# 获取信息发送者的QQ号
+def get_user_id():
+	return all_message['user_id']
+
+#获取发送的信息
+def get_raw_message():
+	return all_message['raw_message']
+
+#查找txt文本数据库
+def txt_msg(msg):
+	fp = open("/机器人/txt.txt", "r",encoding='utf-8')
+	while 1:
+		s = fp.readline()
+		if not s:
+			fp.close()
+			if flag == 2:
+				return
+			return error()
+		s = s.strip('\n')
+		s1 = s.split(' ')[0]
+		s2 = s.split(' ')[1]
+		if '[CQ:at,qq=×××××] ' + s1 == msg:
+			fp.close()
+			return s2
+
+
+
+#帮助界面
+def help_interface():
+	number = get_number()
+	payload = "GET /send_group_msg?group_id=" + str(number) + "&message=学习方式：%0a私聊rabbit酱，发送学习信息。%0a学习格式：%27学习%27%20%2b%20发送信息%20%2b%20回复信息，以空格分开%0a例：学习%20我爱你%20我也爱你" + " HTTP/1.1\r\nHost: 127.0.0.1:5700\r\nConnection: close\r\n\r\n"
+	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	client.connect(('127.0.0.1',5700))
+	client.send(payload.encode("utf-8"))
+	client.close()
+
+#错误
+def error():
+	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	client.connect(('127.0.0.1',5700))
+	rand = random.randint(1,4)
+	number = get_number()
+	if rand == 1:
+		msg = "我听不懂你在说什么哦"
+	elif rand == 2:
+		msg = "我好笨，听不懂呜呜呜"
+	elif rand == 3:
+		msg = "啊？发生了什么"
+	elif rand == 4:
+		msg = "干啥呢干啥呢"
+	payload = "GET /send_group_msg?group_id=" + str(number) + "&message=" + msg + " HTTP/1.1\r\nHost: 127.0.0.1:5700\r\nConnection: close\r\n\r\n"
+	client.send(payload.encode("utf-8"))
+	client.close()
+
+#发送猫猫图
+，图片保存在本地
+def send_cat_pic():
+	global flag
+	flag = 1
+	cat_list = os.listdir("/data/catpic")
+	all_message['raw_message'] = "[CQ:image,file=file:///data/catpic/"+ random.choice(cat_list)+"]"
+	client_to_conn()
+
+#发送setu，图片从API内获取
+def send_setu_pic():
+	apikey = '×××××××××××××××'
+	req_url="https://api.lolicon.app/setu/"
+	params = {"apikey":apikey}
+	res=requests.get(req_url,params=params)
+	setu_url=res.json()['data'][0]['url']
+	all_message['raw_message'] ="[CQ:image,file="+setu_url+"]"
+	client_to_conn()
+
+
+
+
+#首次判断信息内容
+def first_judgement():
+	if get_message_type() == 'private':
+		training_message()
+	if get_raw_message() == '[CQ:at,qq=×××××××××] help':
+		help_interface()
+		return
+	if get_raw_message() == '[CQ:at,qq=×××××××××] setu':
+		send_setu()
+		return
+	elif get_raw_message() == '[CQ:at,qq=×××××××××] 猫猫图':
+		send_cat_pic()
+		return
+	elif len(get_raw_message()) < 20:  #即使不@，也有15%概率回复信息
+		rand = random.randint(1,20)
+		if rand <= 3:
+			global flag
+			flag = 2
+			all_message['raw_message'] = '[CQ:at,qq=×××××××××] ' + all_message['raw_message']
+			client_to_conn()
+		else:
+			return
+	elif get_raw_message()[0:20] != '[CQ:at,qq=×××××××××]':
+		return
+	client_to_conn()
+
+
+	//
+
+
+import socket
+
+import function,server
+
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+#从客户端发送给服务端
+def client_to_conn():
+	label = get_message_type()
+	number = get_number()
+	msg = get_raw_message()
+	if flag == 0:
+		msg = txt_msg(get_raw_message())
+	if label == 'group':
+		payload = "GET /send_group_msg?group_id=" + str(number) + "&message=" + msg + " HTTP/1.1\r\nHost: 127.0.0.1:5700\r\nConnection: close\r\n\r\n"
+	elif label == 'private':
+		payload = "GET /send_private_msg?user_id=" + str(number) + "&message=××××" + " HTTP/1.1\r\nHost: 127.0.0.1:5700\r\nConnection: close\r\n\r\n"
+	client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	client.connect(('127.0.0.1',5700))
+	client.send(payload.encode("utf-8"))
+	client.close()
+
+
+	//
+
+
+import json, socket
+
+import function,client
+
+ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ListenSocket.bind(('127.0.0.1', 5710))
+ListenSocket.listen(100)
+
+HttpResponseHeader = '''HTTP/1.1 200 OK
+Content-Type: text/html
+'''
+
+
+# 定位有效信息
+def request_to_json(msg):
+    for i in range(len(msg)):
+        if msg[i] == "{" and msg[-1] == "}":
+            return json.loads(msg[i:])
+    return None
+
+
+# 需要循环执行，返回值为json格式
+def rev_msg():  # json or None
+    conn, Address = ListenSocket.accept()
+    Request = conn.recv(1024).decode(encoding='utf-8')
+    # print(Request)
+    rev_json = request_to_json(Request)
+    # print(rev_json)
+    conn.sendall((HttpResponseHeader).encode(encoding='utf-8'))
+    conn.close()
+    return rev_json
+
+
+
+#flag为全局变量
+#flag = 0 正常
+#flag = 1 数据不通过数据库
+#flag = 2 退出
+#使用try、except语句保证程序不会因部分错误退出。
+while 1:
+	global flag
+	flag = 0
+	all_message = rev_msg()
+	#print(all_message)
+	try:
+		first_judgement()
+	except:
+		continue
+
+
+老的main
+def main_in(main_into):
+    post_type_0 = main_into["post_type"]
+    if post_type_0 == "message":
+        message_type_0 = main_into["message_type"]
+        message_input_0 = main_into["message"]
+        with open('main.json', 'r', encoding='utf-8') as main_json:
+            main_json_0 = json.load(main_json)
+            for key_0 in main_json_0:
+                value_0 = main_json_0[key_0]
+                if "g" in key_0:
+                    event_0 = value_0["event"]
+                    if event_0 == "get_msg":
+                        get_message_0 = value_0["get_message"]
+                        mode_0 = get_message_0["mode"]
+                        from_0 = mode_0["from"]
+                        special_0 = get_message_0["special"]
+                        if special_0 == "None":
+                            if from_0 == "all":  # 全局
+                                pass
+                            elif from_0 == message_type_0:
+                                type_0 = mode_0["type"]
+                                if type_0 == "precise":  # 精确
+                                    get_0 = get_message_0["get"]
+                                    if get_0 == message_input_0:
+                                        sand_0 = get_message_0["sand"]
+                                        user_id_0 = main_into["user_id"]
+                                        return_0 = send_private_msg(user_id_0, sand_0)
+                                    else:
+                                        pass
+                                elif type_0 == "include":
+                                    if get_0 in message_input_0:
+                                        sand_0 = get_message_0["sand"]
+                                        user_id_0 = main_into["user_id"]
+                                        return_0 = send_private_msg(user_id_0, sand_0)
+                                elif type_0 == "vague":
+                                    pass
+                                else:
+                                    pass
+                                    # TODO 报错
+                        elif special_0 == "weather":
+                            if from_0 == "all":  # 全局
+                                pass
+                            elif from_0 == message_type_0:
+                                type_0 = mode_0["type"]
+                                if type_0 == "precise":  # 精确
+                                    get_0 = get_message_0["get"]
+                                    if get_0 == message_input_0:#TODO 改成发送天气
+                                        sand_0 = get_message_0["sand"]
+                                        user_id_0 = main_into["user_id"]
+                                        return_0 = send_private_msg(user_id_0, sand_0)
+                                    else:
+                                        pass
+                                elif type_0 == "include":
+                                    if get_0 in message_input_0:
+                                        sand_0 = get_message_0["sand"]#TODO 改成发送天气
+                                        user_id_0 = main_into["user_id"]
+                                        return_0 = send_private_msg(user_id_0, sand_0)
+                                elif type_0 == "vague":
+                                    pass
+                                else:
+                                    pass
+                                    # TODO 报错
+                    elif event_0 == "":
+                        pass
+                    else:
+                        pass#TODO 这里需要继续写其他事件
+                elif "i" in key_0:
+                    pass#TODO 这里还有其他模式
+                else:
+                    pass  #TODO 报错
+    else:
+        pass
+
+
+
+
+# coding=gbk
+import random
+
+import requests,chardet,re,os,urllib,datetime
+from bs4 import BeautifulSoup
+
+
+#for i in range(1,31):
+#url_0 = 'https://www.duitang.com/search/?kw=%E5%8A%A8%E6%BC%AB&type=feed#!s-p' + str(i)
+#print(url_0)
+all_input = []
+url_0 = 'http://www.acg-pixiv.com/tags/24722.html'
+html_0 = requests.get(url_0).content
+bs = BeautifulSoup(html_0, 'html.parser')
+imagesUrl = bs.find_all('img')
+path_0 = "D:\myQQrobot\myQQrobot\程序\python2\picture"
+for url_1 in imagesUrl:
+    pic_url = re.search('src="(.*?)"',str(url_1)).group(1)
+    all_input.append(pic_url)
+
+for url_2 in all_input:
+    out_put = requests.get(url_2)
+    if out_put.status_code == 200:
+        img_name = url_2.split('/').pop()
+        try:
+            img_name=img_name.replace(':','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace('/','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace('?','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace('*','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace('&','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace(';','')
+        except:
+            pass
+        try:
+            img_name=img_name.replace('|','')
+        except:
+            pass
+        img_end = os.path.join(str(path_0),str(img_name))
+        #img_end = ''
+        try:
+            with open(img_end,'wb') as png:
+                png.write(out_put.content)
+        except:
+            print("error")
+
+
+
+
+
+def filter(main_into,user_type):
+#    with open('D:\myQQrobot\myQQrobot\程序\python2\json\filter.json__') as f:
+#        lines = json.load(f)
+#        for keys in lines:
+#            if user_type == "group":
+#                for keys2 in lines[keys]:
+#                    if main_into["group_id"] == keys[keys2]:
+#                        print("no")
+#                        return 'no'
+#                    else:
+#                        print("yes")
+#                        return 'yes'
+#            else:
+#                for keys2 in keys:
+#                    if main_into["user_id"] == keys[keys2]:
+#                        print("no")
+#                        return 'no'
+#                    else:
+#                        print("yes")
+#                        return 'yes'
+#        else:
+#            pass
+    return 'yes'
